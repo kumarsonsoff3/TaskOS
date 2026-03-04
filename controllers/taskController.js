@@ -2,7 +2,17 @@ import Task from '../models/Task.js';
 
 export const getTasks = async (req, res) => {
   try {
-    const tasks = await Task.find().sort({ createdAt: -1 });
+    const { ids } = req.query;
+    let query = {};
+    if (ids) {
+      const idArray = ids.split(',');
+      query = { _id: { $in: idArray } };
+    } else {
+      // If no IDs are provided, return empty array to prevent fetching all tasks
+      return res.status(200).json([]);
+    }
+
+    const tasks = await Task.find(query).sort({ createdAt: -1 });
     res.status(200).json(tasks);
   } catch (error) {
     console.error('getTasks error:', error);

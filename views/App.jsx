@@ -7,9 +7,25 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const getStoredTaskIds = () => {
+    const saved = localStorage.getItem('userTaskIds');
+    return saved ? JSON.parse(saved) : [];
+  };
+
+  const saveTaskIds = (ids) => {
+    localStorage.setItem('userTaskIds', JSON.stringify(ids));
+  };
+
   const fetchTasks = async () => {
     try {
-      const response = await fetch('/api/tasks');
+      const storedIds = getStoredTaskIds();
+      if (storedIds.length === 0) {
+        setTasks([]);
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`/api/tasks?ids=${storedIds.join(',')}`);
       if (!response.ok) throw new Error('Failed to fetch tasks');
       const data = await response.json();
       setTasks(data);
@@ -38,6 +54,9 @@ function App() {
       
       const createdTask = await response.json();
       setTasks([createdTask, ...tasks]);
+      const currentIds = getStoredTaskIds();
+      saveTaskIds([createdTask._id, ...currentIds]);
+
       setNewTaskTitle('');
       setDueDate('');
     } catch (err) {
@@ -69,6 +88,8 @@ function App() {
       if (!response.ok) throw new Error('Failed to delete task');
       
       setTasks(tasks.filter(t => t._id !== id));
+      const currentIds = getStoredTaskIds();
+      saveTaskIds(currentIds.filter(tId => tId !== id));
     } catch (err) {
       setError(err.message);
     }
